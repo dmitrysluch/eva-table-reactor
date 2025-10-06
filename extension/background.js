@@ -1,4 +1,17 @@
 const browserApi = typeof browser !== 'undefined' ? browser : chrome;
+const LOG_PREFIX = '[Eva Table Reactor]';
+
+function log(...args) {
+  if (typeof console !== 'undefined') {
+    console.log(LOG_PREFIX, ...args);
+  }
+}
+
+function logError(...args) {
+  if (typeof console !== 'undefined') {
+    console.error(LOG_PREFIX, ...args);
+  }
+}
 
 async function getState() {
   const data = await browserApi.storage.local.get({ tables: [] });
@@ -276,6 +289,7 @@ async function downloadCsv(tableName, csv) {
 }
 
 async function exportTable(message) {
+  log('Export requested', { tableId: message.tableId, dates: message.dates });
   const tables = await getTables();
   const table = tables.find((item) => item.id === message.tableId);
   if (!table) {
@@ -288,14 +302,18 @@ async function exportTable(message) {
   if (!dates.length) {
     throw new Error('No dates provided');
   }
+  log('Starting export', { table: { id: table.id, name: table.name }, dates });
   const aggregated = [];
   for (const date of dates) {
     const url = buildUrlFromTemplate(table.urlTemplate, date, table);
     if (!url) {
       throw new Error('Table URL template is invalid');
     }
+    log(`Processing date ${date}`, { url });
     const tab = await createTab(url);
+    log('Created background tab', { tabId: tab.id, url });
     await waitForTabComplete(tab.id);
+    log('Tab load completed', { tabId: tab.id, date });
     let response;
     try {
       response = await sendMessageToTab(tab.id, {
@@ -303,8 +321,16 @@ async function exportTable(message) {
         table,
         date,
       });
+      log('Scrape completed', {
+        date,
+        rows: Array.isArray(response?.rows) ? response.rows.length : 0,
+      });
+    } catch (error) {
+      logError('Scrape failed', { date, message: error?.message || String(error) });
+      throw error;
     } finally {
       await closeTab(tab.id);
+      log('Closed background tab', { tabId: tab.id, date });
     }
     if (!response || response.error) {
       throw new Error(response?.error || 'Unable to scrape table');
@@ -312,9 +338,12 @@ async function exportTable(message) {
     for (const row of response.rows) {
       aggregated.push({ ...row, __date: date });
     }
+    log('Aggregated rows so far', { totalRows: aggregated.length, date });
   }
   const csv = buildCsv(table.columns, aggregated);
+  log('CSV built', { totalRows: aggregated.length });
   await downloadCsv(table.name, csv);
+  log('Download initiated', { tableName: table.name, totalRows: aggregated.length });
   if (browserApi.notifications) {
     browserApi.notifications.create({
       type: 'basic',
@@ -323,6 +352,7 @@ async function exportTable(message) {
       message: `Export for ${table.name} completed (${dates.length} date${dates.length === 1 ? '' : 's'}).`,
     });
   }
+  log('Export completed successfully', { table: { id: table.id, name: table.name }, datesProcessed: dates.length });
   return { status: 'completed' };
 }
 
@@ -358,6 +388,10 @@ browserApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
               // no-op; result handled via notification
             })
             .catch((error) => {
+              logError('Export failed', {
+                tableId: message?.tableId,
+                message: error?.message || String(error),
+              });
               if (browserApi.notifications) {
                 browserApi.notifications.create({
                   type: 'basic',
@@ -373,6 +407,10 @@ browserApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ error: 'Unknown message type' });
       }
     } catch (error) {
+      logError('Message handling failed', {
+        type: message?.type,
+        message: error?.message || String(error),
+      });
       sendResponse({ error: error.message || String(error) });
     }
   })();

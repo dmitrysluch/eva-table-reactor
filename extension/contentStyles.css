@@ -175,21 +175,35 @@
   border-left: 10px solid transparent;
 }
 
-.eva-table-reactor-stored[data-eva-table-reactor-column]:hover::before {
-  content: attr(data-eva-table-reactor-column);
+
+.eva-table-reactor-tooltip {
   position: absolute;
   top: -8px;
   left: 50%;
   transform: translate(-50%, -100%);
   background: rgba(13, 17, 23, 0.95);
   color: #f5f5f5;
-  padding: 6px 8px;
+  padding: 4px 6px;
   border-radius: 6px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-  white-space: pre;
+  white-space: nowrap;
   font-size: 12px;
   z-index: 2147483647;
   pointer-events: none;
+  opacity: 0.95;
+}
+
+.eva-table-reactor-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(13, 17, 23, 0.95);
 }
 
 .eva-table-reactor-selected {

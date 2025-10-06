@@ -75,9 +75,33 @@ function clearStoredHighlights() {
     if (element) {
       element.classList.remove('eva-table-reactor-stored');
       element.removeAttribute('data-eva-table-reactor-column');
+      element.removeAttribute('title');
+      const tooltip = element.querySelector('.eva-table-reactor-tooltip');
+      if (tooltip) {
+        tooltip.remove();
+      }
     }
   }
   state.highlightedStored.clear();
+}
+
+function ensureCellTooltip(element, text) {
+  if (!element) {
+    return;
+  }
+  let tooltip = element.querySelector('.eva-table-reactor-tooltip');
+  if (!text) {
+    if (tooltip) {
+      tooltip.remove();
+    }
+    return;
+  }
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.className = 'eva-table-reactor-tooltip';
+    element.appendChild(tooltip);
+  }
+  tooltip.textContent = text;
 }
 
 function highlightStoredColumns() {
@@ -91,10 +115,13 @@ function highlightStoredColumns() {
       if (element) {
         element.classList.add('eva-table-reactor-stored');
         if (column.name) {
-          element.setAttribute(
-            'data-eva-table-reactor-column',
-            `${column.name}${column.sourceUrl ? `\n${column.sourceUrl}` : ''}`,
-          );
+          element.setAttribute('data-eva-table-reactor-column', column.name);
+          element.setAttribute('title', column.name);
+          ensureCellTooltip(element, column.name);
+        } else {
+          element.removeAttribute('data-eva-table-reactor-column');
+          element.removeAttribute('title');
+          ensureCellTooltip(element, '');
         }
         state.highlightedStored.add(column.sampleCellSelector);
       }
@@ -161,8 +188,7 @@ function ensureOverlay() {
     </div>
   `;
   overlay.querySelector('.toggle-visibility').addEventListener('click', () => {
-    overlay.classList.add('hidden');
-    highlightSelectedCell(null);
+    hideOverlay();
   });
   overlay.addEventListener('mouseenter', () => {
     overlay.dataset.mouseInside = 'true';
@@ -185,6 +211,14 @@ function showOverlay() {
       highlightSelectedCell(element);
     }
   }
+}
+
+function hideOverlay() {
+  if (!state.overlay) {
+    return;
+  }
+  state.overlay.classList.add('hidden');
+  highlightSelectedCell(null);
 }
 
 function setStatus(message) {
@@ -489,7 +523,7 @@ if (document.readyState === 'loading') {
 
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && state.overlay && !state.overlay.classList.contains('hidden')) {
-    state.overlay.classList.add('hidden');
+    hideOverlay();
   }
 });
 
