@@ -17,6 +17,11 @@ h1 {
   margin: 0;
 }
 
+h2 {
+  font-size: 14px;
+  margin: 0 0 6px;
+}
+
 label {
   display: grid;
   gap: 6px;
@@ -68,4 +73,32 @@ button:disabled {
 .status {
   font-size: 12px;
   min-height: 16px;
+}
+
+.manual {
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+  padding-top: 10px;
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.manual ol {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.manual kbd {
+  background: rgba(15, 23, 42, 0.8);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  font-size: 11px;
+}
+
+.manual .tip {
+  margin: 0;
+  color: #94a3b8;
 }

@@ -74,6 +74,7 @@ function clearStoredHighlights() {
     const element = document.querySelector(selector);
     if (element) {
       element.classList.remove('eva-table-reactor-stored');
+      element.removeAttribute('data-eva-table-reactor-column');
     }
   }
   state.highlightedStored.clear();
@@ -89,6 +90,12 @@ function highlightStoredColumns() {
       const element = document.querySelector(column.sampleCellSelector);
       if (element) {
         element.classList.add('eva-table-reactor-stored');
+        if (column.name) {
+          element.setAttribute(
+            'data-eva-table-reactor-column',
+            `${column.name}${column.sourceUrl ? `\n${column.sourceUrl}` : ''}`,
+          );
+        }
         state.highlightedStored.add(column.sampleCellSelector);
       }
     });
@@ -137,6 +144,7 @@ function ensureOverlay() {
         <div><strong>Column index:</strong> <span class="cell-index">-</span></div>
         <div><strong>Table selector:</strong> <code class="table-selector">n/a</code></div>
         <div><strong>Cell selector:</strong> <code class="cell-selector">n/a</code></div>
+        <div><strong>Source URL:</strong> <span class="cell-url">n/a</span></div>
       </div>
       <label>
         <span>Column name</span>
@@ -154,6 +162,7 @@ function ensureOverlay() {
   `;
   overlay.querySelector('.toggle-visibility').addEventListener('click', () => {
     overlay.classList.add('hidden');
+    highlightSelectedCell(null);
   });
   overlay.addEventListener('mouseenter', () => {
     overlay.dataset.mouseInside = 'true';
@@ -170,6 +179,12 @@ function ensureOverlay() {
 function showOverlay() {
   const overlay = ensureOverlay();
   overlay.classList.remove('hidden');
+  if (state.currentSelection?.sampleCellSelector) {
+    const element = document.querySelector(state.currentSelection.sampleCellSelector);
+    if (element) {
+      highlightSelectedCell(element);
+    }
+  }
 }
 
 function setStatus(message) {
@@ -209,6 +224,7 @@ function updateSelectionPreview(selection) {
   overlay.querySelector('.cell-index').textContent = selection ? `${selection.columnIndex}` : '-';
   overlay.querySelector('.table-selector').textContent = selection ? selection.tableSelector : 'n/a';
   overlay.querySelector('.cell-selector').textContent = selection ? selection.sampleCellSelector : 'n/a';
+  overlay.querySelector('.cell-url').textContent = selection ? selection.sourceUrl : 'n/a';
   const saveButton = overlay.querySelector('.save-column');
   saveButton.disabled = !selection || !overlay.querySelector('.column-name').value.trim() || !state.selectedTableId;
 }
@@ -232,8 +248,12 @@ function updateColumnsList() {
   }
   table.columns.forEach((column) => {
     const item = document.createElement('li');
-    const label = document.createElement('span');
+    const label = document.createElement('div');
+    label.className = 'column-label';
     label.textContent = column.name;
+    const meta = document.createElement('div');
+    meta.className = 'column-meta';
+    meta.textContent = column.sourceUrl || '—';
     const actions = document.createElement('button');
     actions.className = 'secondary';
     actions.textContent = 'Remove';
@@ -247,6 +267,11 @@ function updateColumnsList() {
       setStatus(`Column “${column.name}” removed.`);
     });
     item.appendChild(label);
+    const info = document.createElement('div');
+    info.className = 'column-info';
+    info.appendChild(label);
+    info.appendChild(meta);
+    item.appendChild(info);
     item.appendChild(actions);
     list.appendChild(item);
   });
@@ -312,6 +337,7 @@ async function saveCurrentSelection() {
       sampleCellSelector: selection.sampleCellSelector,
       sampleRowIndex: selection.sampleRowIndex,
       section: selection.section,
+      sourceUrl: selection.sourceUrl,
     },
   });
   if (response?.table) {
@@ -361,6 +387,7 @@ function captureCell(event) {
     sampleCellSelector: uniqueSelector(cell),
     sampleRowIndex: sampleRowIndex >= 0 ? sampleRowIndex : 0,
     section,
+    sourceUrl: window.location.href,
   };
   state.currentSelection = selection;
   highlightSelectedCell(cell);

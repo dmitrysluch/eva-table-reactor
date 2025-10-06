@@ -25,11 +25,24 @@ function renderColumns(list, table) {
   }
   table.columns.forEach((column) => {
     const item = document.createElement('li');
-    const label = document.createElement('span');
-    label.textContent = `${column.name} (index ${column.columnIndex})`;
+    const info = document.createElement('div');
+    info.className = 'column-info';
+
+    const title = document.createElement('span');
+    title.className = 'column-title';
+    title.textContent = `${column.name} (index ${column.columnIndex})`;
+
+    const source = document.createElement('span');
+    source.className = 'column-source';
+    source.textContent = column.sourceUrl || '—';
+
     const selector = document.createElement('code');
     selector.textContent = column.sampleCellSelector || '';
-    item.appendChild(label);
+
+    info.appendChild(title);
+    info.appendChild(source);
+
+    item.appendChild(info);
     item.appendChild(selector);
     list.appendChild(item);
   });

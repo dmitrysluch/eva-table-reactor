@@ -102,6 +102,22 @@ body {
   font-size: 13px;
 }
 
+.column-list li .column-info {
+  display: grid;
+  gap: 4px;
+  max-width: 70%;
+}
+
+.column-list li .column-title {
+  font-weight: 600;
+}
+
+.column-list li .column-source {
+  font-size: 11px;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
 .column-list li code {
   font-family: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
   font-size: 12px;
