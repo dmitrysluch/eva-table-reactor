@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Eva Table Reactor – Tables</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>Eva Table Reactor</h1>
+        <p>Manage configured tables, URL templates, and mapped columns.</p>
+      </header>
+      <section id="tables"></section>
+      <section class="empty" id="emptyState" hidden>
+        <p>No tables defined yet. Visit a page with a table, select cells using the overlay, and save a configuration.</p>
+      </section>
+    </main>
+    <template id="tableTemplate">
+      <article class="table-card">
+        <header>
+          <input class="table-name" type="text" />
+          <div class="table-meta">
+            <span class="page-url"></span>
+          </div>
+        </header>
+        <label>
+          <span>URL template (use <code>{{date}}</code> placeholder for export)</span>
+          <input class="url-template" type="text" />
+        </label>
+        <label>
+          <span>Data section</span>
+          <select class="data-section">
+            <option value="tbody">tbody (default)</option>
+            <option value="table">Entire table</option>
+            <option value="thead">thead</option>
+            <option value="tfoot">tfoot</option>
+          </select>
+        </label>
+        <section class="columns">
+          <h2>Columns</h2>
+          <ul class="column-list"></ul>
+        </section>
+        <footer>
+          <button class="save">Save changes</button>
+          <button class="delete">Delete table</button>
+        </footer>
+      </article>
+    </template>
+    <script src="options.js"></script>
+  </body>
+</html>

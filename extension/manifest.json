@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Eva Table Reactor",
+  "description": "Capture tabular data from arbitrary web pages, map columns, and export CSV batches across dates.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "Eva Table Reactor",
+    "default_popup": "popup.html"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "downloads",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "css": ["contentStyles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "eva-table-reactor@example.com",
+      "strict_min_version": "109.0"
+    }
+  }
+}
