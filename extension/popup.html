@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Eva Table Reactor</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <h1>Eva Table Reactor</h1>
+      <section>
+        <label>
+          <span>Output table</span>
+          <select id="tableSelect"></select>
+        </label>
+      </section>
+      <section>
+        <label>
+          <span>Dates (one per line)</span>
+          <textarea id="dateInput" rows="4" placeholder="2024-01-01\n2024-01-02"></textarea>
+        </label>
+      </section>
+      <section class="actions">
+        <button id="exportButton" disabled>Export CSV</button>
+        <a href="#" id="manageLink">Manage tables</a>
+      </section>
+      <p class="status" id="status"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

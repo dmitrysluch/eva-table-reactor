@@ -1,0 +1,143 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #020617;
+  color: #e2e8f0;
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  display: grid;
+  gap: 24px;
+}
+
+.page > header {
+  display: grid;
+  gap: 8px;
+}
+
+.page > header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.page > header p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.table-card {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.table-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.table-card header input.table-name {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(2, 6, 23, 0.8);
+  color: inherit;
+}
+
+.table-card .table-meta {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.table-card label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.table-card input,
+.table-card select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(2, 6, 23, 0.6);
+  color: inherit;
+  font: inherit;
+}
+
+.columns h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.column-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.column-list li {
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.column-list li code {
+  font-family: 'Fira Code', 'SFMono-Regular', Consolas, monospace;
+  font-size: 12px;
+  color: #38bdf8;
+}
+
+.table-card footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.table-card footer button {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.table-card footer .save {
+  background: #22d3ee;
+  color: #0f172a;
+}
+
+.table-card footer .delete {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
+
+.empty {
+  text-align: center;
+  padding: 80px 0;
+  color: #64748b;
+}
+
+.empty p {
+  margin: 0;
+}
