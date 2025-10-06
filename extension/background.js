@@ -30,7 +30,15 @@ function ensureTableDefaults(table, sourceUrl) {
     page: table.page || normalized || { origin: '', pathname: '' },
     tableSelector: table.tableSelector || '',
     dataSection: table.dataSection || 'tbody',
-    columns: table.columns || [],
+    columns: (table.columns || []).map((column) => ({
+      ...column,
+      section: column.section || 'tbody',
+      sourceUrl:
+        column.sourceUrl ||
+        column.url ||
+        (table.page ? `${table.page.origin || ''}${table.page.pathname || ''}` : '') ||
+        '',
+    })),
   };
 }
 
@@ -54,15 +62,25 @@ function createId(prefix) {
 async function handleGetTablesForUrl(message) {
   const tables = await getTables();
   const { origin, pathname } = normalizeUrlInfo(message.url) || {};
-  return tables.filter((table) => {
-    if (!origin || !pathname) {
-      return false;
+  if (!origin || !pathname) {
+    return tables;
+  }
+  const prioritized = [];
+  const rest = [];
+  tables.forEach((table) => {
+    const matchesTablePage =
+      table.page?.origin === origin && table.page?.pathname === pathname;
+    const matchesColumn = table.columns?.some((column) => {
+      const info = normalizeUrlInfo(column.sourceUrl);
+      return info && info.origin === origin && info.pathname === pathname;
+    });
+    if (matchesTablePage || matchesColumn) {
+      prioritized.push(table);
+    } else {
+      rest.push(table);
     }
-    if (!table.page) {
-      return false;
-    }
-    return table.page.origin === origin && table.page.pathname === pathname;
   });
+  return [...prioritized, ...rest];
 }
 
 async function handleCreateTable(message) {
@@ -100,6 +118,10 @@ async function handleSaveColumn(message) {
     sampleCellSelector: message.column.sampleCellSelector,
     sampleRowIndex: message.column.sampleRowIndex,
     section: message.column.section || 'tbody',
+    sourceUrl:
+      message.column.sourceUrl ||
+      message.sourceUrl ||
+      (table.page ? `${table.page.origin || ''}${table.page.pathname || ''}` : ''),
   };
   table.tableSelector = message.tableSelector || table.tableSelector;
   table.dataSection = message.dataSection || table.dataSection || 'tbody';
