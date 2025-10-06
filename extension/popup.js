@@ -64,7 +64,8 @@ async function handleExport() {
   if (response.error) {
     setStatus(`Export failed: ${response.error}`);
   } else {
-    setStatus('Export started. You will receive a download when finished.');
+    await downloadCsv(response.tableName, response.csv)
+    setStatus('Export finished.');
   }
 }
 
@@ -92,3 +93,25 @@ function initialize() {
 }
 
 document.addEventListener('DOMContentLoaded', initialize);
+
+function downloadCsv(tableName, csv) {
+    console.log('Download initiated', { tableName: tableName });
+    const timestamp = new Date().toISOString().replace(/[:T]/g, '-').split('.')[0];
+    const filename = `${tableName || 'table'}-${timestamp}.csv`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    return new Promise((resolve) => {
+      browserApi.downloads.download({ url, filename }, () => {
+        URL.revokeObjectURL(url);
+        if (browserApi.notifications) {
+            browserApi.notifications.create({
+              type: 'basic',
+              iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAPCAYAAADJViUEAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAKZJREFUeNpi/P//PwMlgImBQjDwZ2Bg+M/AwPCfgRFBxMAEI5gGiF7g4GAJEM0H4jLg3E8QHYh4D4g2E8QbYh4P8AZj1gYkApGoG4D4jLg/EcQfYgYF4B4nIgxF8j0MWYDEQJxF8nsT0A8jkYH4HxAdTHEDsT0D8nFgfgfED1McQOxPQPyKQMDIYw1iArElgPgeEmYg2E8QHYg6AsT2AzEqg/ExKDvD8T8QUXgk0EoGgFgQwAAAwBcvxjzoWJt6gAAAABJRU5ErkJggg==',
+              title: 'Eva Table Reactor',
+              message: `Export for ${table.name} completed (${dates.length} date${dates.length === 1 ? '' : 's'}).`,
+            });
+          }
+        resolve();
+      });
+    });
+  }

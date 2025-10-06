@@ -105,10 +105,11 @@ function ensureCellTooltip(element, text) {
 }
 
 function highlightStoredColumns() {
+  console.log("Hightlight stored columns", state.tables)
   clearStoredHighlights();
   state.tables.forEach((table) => {
     table.columns.forEach((column) => {
-      if (!column.sampleCellSelector) {
+      if (!column.sampleCellSelector || !compareURLs(column.sourceUrl, window.location.href)) {
         return;
       }
       const element = document.querySelector(column.sampleCellSelector);
@@ -117,7 +118,7 @@ function highlightStoredColumns() {
         if (column.name) {
           element.setAttribute('data-eva-table-reactor-column', column.name);
           element.setAttribute('title', column.name);
-          ensureCellTooltip(element, column.name);
+          ensureCellTooltip(element, `${table.name}: ${column.name}`);
         } else {
           element.removeAttribute('data-eva-table-reactor-column');
           element.removeAttribute('title');
@@ -147,24 +148,26 @@ function getSelectedTable() {
 }
 
 function ensureOverlay() {
+  console.log("Ensure overlay")
   if (state.overlay) {
     return state.overlay;
   }
+  console.log("Creating overlay")
   const overlay = document.createElement('div');
-  overlay.className = 'table-reactor-overlay';
+  overlay.className = 'table-reactor-overlay hidden';
   overlay.innerHTML = `
     <header>
       <span>Eva Table Reactor</span>
       <button type="button" class="toggle-visibility" title="Hide">×</button>
     </header>
-    <div class="overlay-body">
-      <div class="field-row">
-        <label style="flex:1">
+    <form class="overlay-body">
+      <label>
           <span>Output table</span>
-          <select class="table-select"></select>
-        </label>
-        <button type="button" class="secondary create-table">New</button>
-      </div>
+          <div class="field-row">
+            <select class="table-select"></select>
+            <button type="button" class="secondary create-table">New</button>
+          </div>
+      </label>
       <div class="info-block instructions">Hold <kbd>Alt</kbd> and click a table cell to capture it.</div>
       <div class="info-block selection-preview">
         <div><strong>Cell value:</strong> <span class="cell-value">None</span></div>
@@ -178,14 +181,14 @@ function ensureOverlay() {
         <input type="text" class="column-name" placeholder="e.g. Close price" />
       </label>
       <div class="field-row">
-        <button type="button" class="primary save-column" disabled>Save column</button>
+        <button type="submit" class="primary save-column" disabled>Save column</button>
         <span class="status-message"></span>
       </div>
       <div>
         <strong>Columns</strong>
         <ul class="column-list"></ul>
       </div>
-    </div>
+    </form>
   `;
   overlay.querySelector('.toggle-visibility').addEventListener('click', () => {
     hideOverlay();
@@ -203,8 +206,10 @@ function ensureOverlay() {
 }
 
 function showOverlay() {
+  console.log("Show overlay.")
   const overlay = ensureOverlay();
   overlay.classList.remove('hidden');
+  highlightStoredColumns()
   if (state.currentSelection?.sampleCellSelector) {
     const element = document.querySelector(state.currentSelection.sampleCellSelector);
     if (element) {
@@ -219,6 +224,7 @@ function hideOverlay() {
   }
   state.overlay.classList.add('hidden');
   highlightSelectedCell(null);
+  clearStoredHighlights();
 }
 
 function setStatus(message) {
@@ -235,7 +241,8 @@ function renderTables() {
   select.innerHTML = '';
   state.tables.forEach((table) => {
     const option = document.createElement('option');
-    option.value = table.id;
+    option.value = table.id;  clearStoredHighlights();
+
     option.textContent = table.name;
     select.appendChild(option);
   });
@@ -322,7 +329,6 @@ async function loadTables() {
   }
   renderTables();
   updateColumnsList();
-  highlightStoredColumns();
 }
 
 async function handleCreateTable() {
@@ -385,6 +391,7 @@ async function saveCurrentSelection() {
 }
 
 function captureCell(event) {
+  console.log("Capture cell")
   const overlay = ensureOverlay();
   if (overlay.dataset.mouseInside === 'true') {
     return;
@@ -429,6 +436,7 @@ function captureCell(event) {
   setStatus(section === 'thead' ? 'Warning: header rows are ignored during export.' : 'Cell captured. Provide a column name and save.');
   const saveButton = overlay.querySelector('.save-column');
   saveButton.disabled = !overlay.querySelector('.column-name').value.trim();
+  overlay.querySelector('input.column-name').focus()
 }
 
 function attachOverlayHandlers() {
@@ -443,6 +451,8 @@ function attachOverlayHandlers() {
 }
 
 function initializeOverlay() {
+  clearStoredHighlights();
+  
   ensureOverlay();
   attachOverlayHandlers();
   loadTables();
@@ -527,3 +537,21 @@ window.addEventListener('keydown', (event) => {
   }
 });
 
+function normalizeUrlInfo(urlString) {
+    try {
+      const url = new URL(urlString);
+      return {
+        origin: url.origin,
+        pathname: url.pathname,
+      };
+    } catch (error) {
+      return null;
+    }
+}
+
+function compareURLs(lhs, rhs) {
+    const { origin: originL, pathname: pathnameL } = normalizeUrlInfo(lhs) || {};
+    const { origin: originR, pathname: pathnameR } = normalizeUrlInfo(rhs) || {};
+    console.log("Compare", lhs, rhs, originL, originR, pathnameL, pathnameR)
+    return (originL === originR) && (pathnameL === pathnameR)
+}

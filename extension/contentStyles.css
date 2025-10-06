@@ -2,7 +2,7 @@
   position: fixed;
   bottom: 16px;
   right: 16px;
-  width: 320px;
+  width: 400px;
   max-height: 90vh;
   background: rgba(13, 17, 23, 0.95);
   color: #f5f5f5;
@@ -156,6 +156,11 @@
 .table-reactor-overlay .status-message {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
+}
+
+.table-reactor-overlay .table-select {
+    display: block;
+    flex-grow: 1;
 }
 
 .eva-table-reactor-stored {

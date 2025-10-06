@@ -259,33 +259,15 @@ function buildUrlFromTemplate(template, dateValue, table) {
     return template.replace(/\{\{date\}\}/g, dateToken);
   }
   let base = template;
-  if (!/^https?:/i.test(template)) {
-    const origin = table?.page?.origin || '';
-    if (!origin) {
-      return '';
-    }
-    base = `${origin.replace(/\/$/, '')}/${template.replace(/^\//, '')}`;
-  }
   try {
     const url = new URL(base);
     url.searchParams.set('date', dateValue);
     return url.toString();
   } catch (error) {
+    logError(base)
+    logError(error)
     return '';
   }
-}
-
-async function downloadCsv(tableName, csv) {
-  const timestamp = new Date().toISOString().replace(/[:T]/g, '-').split('.')[0];
-  const filename = `${tableName || 'table'}-${timestamp}.csv`;
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  return new Promise((resolve) => {
-    browserApi.downloads.download({ url, filename }, () => {
-      URL.revokeObjectURL(url);
-      resolve();
-    });
-  });
 }
 
 async function exportTable(message) {
@@ -336,24 +318,13 @@ async function exportTable(message) {
       throw new Error(response?.error || 'Unable to scrape table');
     }
     for (const row of response.rows) {
-      aggregated.push({ ...row, __date: date });
+        aggregated.push({ ...row, __date: date });
     }
     log('Aggregated rows so far', { totalRows: aggregated.length, date });
   }
   const csv = buildCsv(table.columns, aggregated);
   log('CSV built', { totalRows: aggregated.length });
-  await downloadCsv(table.name, csv);
-  log('Download initiated', { tableName: table.name, totalRows: aggregated.length });
-  if (browserApi.notifications) {
-    browserApi.notifications.create({
-      type: 'basic',
-      iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAPCAYAAADJViUEAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAKZJREFUeNpi/P//PwMlgImBQjDwZ2Bg+M/AwPCfgRFBxMAEI5gGiF7g4GAJEM0H4jLg3E8QHYh4D4g2E8QbYh4P8AZj1gYkApGoG4D4jLg/EcQfYgYF4B4nIgxF8j0MWYDEQJxF8nsT0A8jkYH4HxAdTHEDsT0D8nFgfgfED1McQOxPQPyKQMDIYw1iArElgPgeEmYg2E8QHYg6AsT2AzEqg/ExKDvD8T8QUXgk0EoGgFgQwAAAwBcvxjzoWJt6gAAAABJRU5ErkJggg==',
-      title: 'Eva Table Reactor',
-      message: `Export for ${table.name} completed (${dates.length} date${dates.length === 1 ? '' : 's'}).`,
-    });
-  }
-  log('Export completed successfully', { table: { id: table.id, name: table.name }, datesProcessed: dates.length });
-  return { status: 'completed' };
+  return { tableName: table.name, csv: csv };
 }
 
 browserApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -384,11 +355,11 @@ browserApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
         case 'EXPORT_TABLE':
           exportTable(message)
-            .then(() => {
-              // no-op; result handled via notification
+            .then((response) => {
+                sendResponse({ status: 'success', ...response });
             })
             .catch((error) => {
-              logError('Export failed', {
+              logError(`Export failed: ${error?.message || String(error)}`, {
                 tableId: message?.tableId,
                 message: error?.message || String(error),
               });
@@ -400,8 +371,8 @@ browserApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   message: error.message || 'Export failed.',
                 });
               }
+                sendResponse({ status: 'failed', error: error });
             });
-          sendResponse({ status: 'started' });
           break;
         default:
           sendResponse({ error: 'Unknown message type' });
