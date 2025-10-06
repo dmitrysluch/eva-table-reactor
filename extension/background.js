@@ -270,6 +270,64 @@ function buildUrlFromTemplate(template, dateValue, table) {
   }
 }
 
+function getColumnGroups(table) {
+  const groups = new Map();
+  table.columns.forEach((column) => {
+    const template = column.sourceUrl || table.urlTemplate || '';
+    if (!template) {
+      throw new Error(`Column "${column.name}" has no source URL or table template defined.`);
+    }
+    if (!groups.has(template)) {
+      groups.set(template, []);
+    }
+    groups.get(template).push(column);
+  });
+  return Array.from(groups.entries()).map(([template, columns]) => ({
+    template,
+    columns,
+    minSampleIndex: Math.min(
+      ...columns.map((column) => (typeof column.sampleRowIndex === 'number' ? column.sampleRowIndex : 0)),
+    ),
+  }));
+}
+
+async function scrapeColumnsForDate({ date, template, columns, table }) {
+  const url = buildUrlFromTemplate(template, date, table);
+  if (!url) {
+    throw new Error('Table URL template is invalid');
+  }
+  log(`Processing date ${date}`, { url, columns: columns.map((column) => column.name) });
+  const tab = await createTab(url);
+  log('Created background tab', { tabId: tab.id, url });
+  await waitForTabComplete(tab.id);
+  log('Tab load completed', { tabId: tab.id, date });
+  let response;
+  try {
+    response = await sendMessageToTab(tab.id, {
+      type: 'PERFORM_SCRAPE',
+      table: {
+        ...table,
+        columns,
+      },
+      date,
+    });
+    log('Scrape completed', {
+      date,
+      rows: Array.isArray(response?.rows) ? response.rows.length : 0,
+    });
+  } catch (error) {
+    logError('Scrape failed', { date, message: error?.message || String(error) });
+    throw error;
+  } finally {
+    await closeTab(tab.id);
+    log('Closed background tab', { tabId: tab.id, date });
+  }
+  if (!response || response.error) {
+    throw new Error(response?.error || 'Unable to scrape table');
+  }
+  return response.rows || [];
+}
+
 async function exportTable(message) {
   log('Export requested', { tableId: message.tableId, dates: message.dates });
   const tables = await getTables();
@@ -284,42 +342,36 @@ async function exportTable(message) {
   if (!dates.length) {
     throw new Error('No dates provided');
   }
-  log('Starting export', { table: { id: table.id, name: table.name }, dates });
+  const columnGroups = getColumnGroups(table);
+  log('Starting export', {
+    table: { id: table.id, name: table.name },
+    dates,
+    columnGroups: columnGroups.map((group) => ({
+      template: group.template,
+      columns: group.columns.map((column) => column.name),
+    })),
+  });
   const aggregated = [];
   for (const date of dates) {
-    const url = buildUrlFromTemplate(table.urlTemplate, date, table);
-    if (!url) {
-      throw new Error('Table URL template is invalid');
+    const aggregatedRow = { __date: date };
+    table.columns.forEach((column) => {
+      aggregatedRow[column.name] = '';
+    });
+    for (const group of columnGroups) {
+      const rows = await scrapeColumnsForDate({ date, template: group.template, columns: group.columns, table });
+      for (const column of group.columns) {
+        const rowIndex = Math.max(
+          0,
+          (typeof column.sampleRowIndex === 'number' ? column.sampleRowIndex : 0) -
+            (typeof group.minSampleIndex === 'number' ? group.minSampleIndex : 0),
+        );
+        const value = rows?.[rowIndex]?.[column.name];
+        if (typeof value !== 'undefined') {
+          aggregatedRow[column.name] = value;
+        }
+      }
     }
-    log(`Processing date ${date}`, { url });
-    const tab = await createTab(url);
-    log('Created background tab', { tabId: tab.id, url });
-    await waitForTabComplete(tab.id);
-    log('Tab load completed', { tabId: tab.id, date });
-    let response;
-    try {
-      response = await sendMessageToTab(tab.id, {
-        type: 'PERFORM_SCRAPE',
-        table,
-        date,
-      });
-      log('Scrape completed', {
-        date,
-        rows: Array.isArray(response?.rows) ? response.rows.length : 0,
-      });
-    } catch (error) {
-      logError('Scrape failed', { date, message: error?.message || String(error) });
-      throw error;
-    } finally {
-      await closeTab(tab.id);
-      log('Closed background tab', { tabId: tab.id, date });
-    }
-    if (!response || response.error) {
-      throw new Error(response?.error || 'Unable to scrape table');
-    }
-    for (const row of response.rows) {
-        aggregated.push({ ...row, __date: date });
-    }
+    aggregated.push(aggregatedRow);
     log('Aggregated rows so far', { totalRows: aggregated.length, date });
   }
   const csv = buildCsv(table.columns, aggregated);
